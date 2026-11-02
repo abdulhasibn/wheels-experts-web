@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Clock, MapPin, MessageCircle, Phone } from "lucide-react";
 import { Reveal } from "@/components/ui/reveal";
-import { inventory } from "@/data/inventory";
+import type { PublicCar } from "@/lib/api";
 import { site } from "@/data/site";
 import { interestStore, useStore } from "@/lib/store";
 import { testDriveMessage, whatsappLink } from "@/lib/whatsapp";
@@ -17,7 +17,7 @@ function todayISO(): string {
   return now.toISOString().slice(0, 10);
 }
 
-export function Visit() {
+export function Visit({ cars }: { cars: PublicCar[] }) {
   const interest = useStore(interestStore);
   const [error, setError] = useState("");
 
@@ -30,7 +30,7 @@ export function Visit() {
     if (!/^(\+91)?[6-9]\d{9}$/.test(phone)) return setError("Please enter a valid 10-digit mobile number.");
     setError("");
     const carId = String(data.get("car") ?? "");
-    const car = inventory.find((c) => c.id === carId);
+    const car = cars.find((c) => c.id === carId);
     const message = testDriveMessage({
       name,
       phone,
@@ -98,7 +98,7 @@ export function Visit() {
               Car you&apos;d like to drive
               <select key={interest} name="car" defaultValue={interest} className={field}>
                 <option value="">Not sure yet — show me options</option>
-                {inventory.map((car) => (
+                {cars.map((car) => (
                   <option key={car.id} value={car.id}>
                     {car.year} {car.make} {car.model}
                   </option>

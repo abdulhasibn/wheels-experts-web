@@ -1,18 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { site } from "@/data/site";
 import { Logo } from "./ui/logo";
 
+// Root-relative so the same nav works on the home page and on /cars.
 const LINKS = [
-  { href: "#buy", label: "Buy" },
-  { href: "#match", label: "Find your match" },
-  { href: "#sell", label: "Sell" },
-  ...(site.contactReady ? [{ href: "#visit", label: "Visit" }] : []),
+  { href: "/cars", label: "Buy" },
+  { href: "/#match", label: "Find your match" },
+  { href: "/#sell", label: "Sell" },
+  ...(site.contactReady ? [{ href: "/#visit", label: "Visit" }] : []),
 ];
 
-const CTA = site.contactReady ? { href: "#visit", label: "Book a test drive" } : { href: "#buy", label: "Browse cars" };
+const CTA = { href: "/cars", label: "Browse cars" };
 
 export function Nav() {
   const [hidden, setHidden] = useState(false);
@@ -45,25 +47,25 @@ export function Nav() {
           solid ? "glass" : "border border-transparent",
         )}
       >
-        <a href="#top" aria-label="Wheels Experts — home">
+        <Link href="/" aria-label="Wheels Experts — home">
           <Logo />
-        </a>
+        </Link>
         <ul className="hidden items-center gap-8 text-sm text-muted md:flex">
           {LINKS.map((link) => (
             <li key={link.href}>
-              <a href={link.href} className="transition-colors hover:text-fg">
+              <Link href={link.href} className="transition-colors hover:text-fg">
                 {link.label}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
         <div className="flex items-center gap-2.5">
-          <a
+          <Link
             href={CTA.href}
             className="rounded-full bg-fg px-4 py-2 text-[13px] font-semibold text-ink transition hover:bg-teal-soft"
           >
             {CTA.label}
-          </a>
+          </Link>
         </div>
       </nav>
     </header>

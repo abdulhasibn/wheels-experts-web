@@ -1,4 +1,4 @@
-import type { BodyType, Car, Fuel, Transmission } from "@/data/inventory";
+import type { PublicCar } from "@/lib/api";
 
 /**
  * Buyer-facing version of AutoLead's lead ↔ vehicle match score
@@ -18,10 +18,13 @@ const BUDGET_TOLERANCE = 0.15;
 
 export interface BuyerPreference {
   budgetLakh: number;
-  bodyType: BodyType | null;
-  fuel: Fuel | null;
-  transmission: Transmission | null;
+  bodyType: string | null;
+  fuel: string | null;
+  transmission: string | null;
 }
+
+/** Only priced cars can be scored against a budget. */
+export type PricedCar = PublicCar & { listedPrice: number };
 
 function budgetFraction(budget: number, price: number): number {
   if (price <= budget) return 1;
@@ -30,16 +33,20 @@ function budgetFraction(budget: number, price: number): number {
   return Math.max(0, 1 - over / BUDGET_TOLERANCE);
 }
 
-export function scoreCar(preference: BuyerPreference, car: Car): number {
-  let possible = WEIGHTS.budget;
-  let earned = WEIGHTS.budget * budgetFraction(preference.budgetLakh, car.priceLakh);
+export function priceLakh(car: PricedCar): number {
+  return car.listedPrice / 1e5;
+}
 
-  const exact = (weight: number, wanted: string | null, actual: string) => {
+export function scoreCar(preference: BuyerPreference, car: PricedCar): number {
+  let possible = WEIGHTS.budget;
+  let earned = WEIGHTS.budget * budgetFraction(preference.budgetLakh, priceLakh(car));
+
+  const exact = (weight: number, wanted: string | null, actual: string | null) => {
     if (wanted === null) return;
     possible += weight;
     if (wanted === actual) earned += weight;
   };
-  exact(WEIGHTS.fuelType, preference.fuel, car.fuel);
+  exact(WEIGHTS.fuelType, preference.fuel, car.fuelType);
   exact(WEIGHTS.transmission, preference.transmission, car.transmission);
   exact(WEIGHTS.bodyType, preference.bodyType, car.bodyType);
 

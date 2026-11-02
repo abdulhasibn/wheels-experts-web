@@ -7,19 +7,32 @@ import { Showcase } from "@/components/sections/showcase";
 import { Trust } from "@/components/sections/trust";
 import { Visit } from "@/components/sections/visit";
 import { site } from "@/data/site";
+import { getCars, type Page, type PublicCar } from "@/lib/api";
 import { SmoothScroll } from "@/lib/smooth-scroll";
 
-export default function Home() {
+/** Cars on the home page strip; Match scores a wider slice of stock. */
+const FEATURED = 8;
+const MATCH_POOL = 48;
+
+export default async function Home() {
+  // The home page must render even if the stock API is down.
+  const stock: Page<PublicCar> = await getCars({ limit: MATCH_POOL }).catch(() => ({
+    items: [],
+    total: 0,
+    limit: MATCH_POOL,
+    offset: 0,
+  }));
+
   return (
     <SmoothScroll>
       <Nav />
       <main>
         <Showcase />
-        <Collection />
-        <Match />
+        <Collection cars={stock.items.slice(0, FEATURED)} total={stock.total} />
+        <Match cars={stock.items} />
         <Sell />
         {site.socialProofReady && <Trust />}
-        {site.contactReady && <Visit />}
+        {site.contactReady && <Visit cars={stock.items} />}
       </main>
       <Footer />
     </SmoothScroll>

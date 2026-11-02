@@ -2,23 +2,13 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
+import Link from "next/link";
 import { LayoutGroup, motion } from "motion/react";
 import { Reveal } from "@/components/ui/reveal";
-import Image from "next/image";
-import {
-  BODY_LABEL,
-  FUEL_LABEL,
-  TRANSMISSION_LABEL,
-  formatKm,
-  formatLakh,
-  inventory,
-  type BodyType,
-  type Fuel,
-  type Transmission,
-} from "@/data/inventory";
-import { scoreCar } from "@/lib/match";
-import { site } from "@/data/site";
-import { interestStore } from "@/lib/store";
+import { CarPhoto } from "@/components/cars/car-card";
+import type { PublicCar } from "@/lib/api";
+import { formatKm, formatPrice, label } from "@/lib/format";
+import { priceLakh, scoreCar, type PricedCar } from "@/lib/match";
 
 const SHOWN = 4;
 
@@ -93,20 +83,38 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-export function Match() {
+/** Choices offered are the ones actually in stock. */
+function optionsOf(values: (string | null)[]): Record<string, string> {
+  return Object.fromEntries(
+    [...new Set(values.filter((v): v is string => v !== null))].sort().map((v) => [v, label(v)]),
+  );
+}
+
+export function Match({ cars }: { cars: PublicCar[] }) {
+  const priced = useMemo(() => cars.filter((car): car is PricedCar => car.listedPrice !== null), [cars]);
   const [budgetLakh, setBudget] = useState(15);
-  const [bodyType, setBodyType] = useState<BodyType | null>(null);
-  const [fuel, setFuel] = useState<Fuel | null>(null);
-  const [transmission, setTransmission] = useState<Transmission | null>(null);
+  const [bodyType, setBodyType] = useState<string | null>(null);
+  const [fuel, setFuel] = useState<string | null>(null);
+  const [transmission, setTransmission] = useState<string | null>(null);
+  const options = useMemo(
+    () => ({
+      body: optionsOf(priced.map((car) => car.bodyType)),
+      fuel: optionsOf(priced.map((car) => car.fuelType)),
+      transmission: optionsOf(priced.map((car) => car.transmission)),
+    }),
+    [priced],
+  );
 
   const ranked = useMemo(() => {
     const preference = { budgetLakh, bodyType, fuel, transmission };
-    return inventory
+    return priced
       .map((car) => ({ car, score: scoreCar(preference, car) }))
       // Equal scores: the car that makes best use of the budget first.
-      .sort((a, b) => b.score - a.score || Math.abs(budgetLakh - a.car.priceLakh) - Math.abs(budgetLakh - b.car.priceLakh))
+      .sort((a, b) => b.score - a.score || Math.abs(budgetLakh - priceLakh(a.car)) - Math.abs(budgetLakh - priceLakh(b.car)))
       .slice(0, SHOWN);
-  }, [budgetLakh, bodyType, fuel, transmission]);
+  }, [priced, budgetLakh, bodyType, fuel, transmission]);
+
+  if (priced.length === 0) return null;
 
   return (
     <section id="match" className="relative px-5 py-16 sm:px-10 md:py-32 lg:px-16">
@@ -127,7 +135,7 @@ export function Match() {
                 <label htmlFor="budget" className="text-sm text-muted">
                   Budget
                 </label>
-                <span className="text-2xl font-semibold tabular-nums">up to {formatLakh(budgetLakh)}</span>
+                <span className="text-2xl font-semibold tabular-nums">up to {formatPrice(budgetLakh * 1e5)}</span>
               </div>
               <input
                 id="budget"
@@ -140,9 +148,9 @@ export function Match() {
                 className="w-full"
               />
             </div>
-            <Segmented label="Body type" options={BODY_LABEL} value={bodyType} onChange={setBodyType} />
-            <Segmented label="Fuel" options={FUEL_LABEL} value={fuel} onChange={setFuel} />
-            <Segmented label="Gearbox" options={TRANSMISSION_LABEL} value={transmission} onChange={setTransmission} />
+            <Segmented label="Body type" options={options.body} value={bodyType} onChange={setBodyType} />
+            <Segmented label="Fuel" options={options.fuel} value={fuel} onChange={setFuel} />
+            <Segmented label="Gearbox" options={options.transmission} value={transmission} onChange={setTransmission} />
           </div>
         </div>
 
@@ -161,24 +169,21 @@ export function Match() {
                 )}
               >
                 <div className="relative hidden aspect-[4/3] w-28 shrink-0 overflow-hidden rounded-2xl sm:block">
-                  <Image src={car.photo.src} alt="" fill sizes="112px" className="object-cover" />
+                  <CarPhoto src={car.coverImageUrl} alt="" className="absolute inset-0 size-full" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">
                     {car.make} {car.model}
                   </p>
                   <p className="mt-1 truncate text-sm text-muted">
-                    {car.year} · {formatKm(car.km)} · {formatLakh(car.priceLakh)}
+                    {car.year} · {formatKm(car.kmDriven)} · {formatPrice(car.listedPrice)}
                   </p>
-                  {i === 0 && site.contactReady && (
-                    <a
-                      href="#visit"
-                      onClick={() => interestStore.set(car.id)}
-                      className="mt-2 inline-block text-sm font-medium text-teal hover:text-teal-soft"
-                    >
-                      Book a test drive →
-                    </a>
-                  )}
+                  <Link
+                    href={`/cars/${car.id}`}
+                    className="mt-2 inline-block text-sm font-medium text-teal hover:text-teal-soft"
+                  >
+                    {i === 0 ? "See it & book a test drive →" : "View car →"}
+                  </Link>
                 </div>
                 <ScoreRing score={score} />
               </motion.li>
