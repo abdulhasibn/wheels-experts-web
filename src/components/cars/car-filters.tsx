@@ -5,7 +5,7 @@ import type { FilterOptions } from "@/lib/api";
 import { formatPrice, label } from "@/lib/format";
 
 const select =
-  "h-11 w-full appearance-none rounded-full border border-edge/10 bg-ink-2 px-4 pr-9 text-sm text-fg outline-none transition focus:border-teal/60 focus:ring-4 focus:ring-teal/10 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2399a9a5%22 stroke-width=%222%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:12px] bg-[right_1rem_center] bg-no-repeat";
+  "h-11 w-full appearance-none rounded-full border border-edge/10 bg-ink-2 px-4 pr-9 text-base text-fg sm:text-sm outline-none transition focus:border-teal/60 focus:ring-4 focus:ring-teal/10 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2399a9a5%22 stroke-width=%222%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:12px] bg-[right_1rem_center] bg-no-repeat";
 
 const BUDGETS = [500000, 800000, 1000000, 1500000, 2000000, 3000000];
 
@@ -44,7 +44,9 @@ export function CarFilters({ options, active }: { options: FilterOptions; active
         }
         form.requestSubmit();
       }}
-      className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 xl:grid-cols-7"
+      // Phones: one swipeable row, so the cars start above the fold. `relative` keeps
+      // the absolutely-positioned sr-only labels inside it instead of widening the page.
+      className="relative -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-7"
     >
       <Select name="makeId" value={active.makeId} label="Make" placeholder="All makes">
         {options.makes.map((m) => (
@@ -94,14 +96,14 @@ export function CarFilters({ options, active }: { options: FilterOptions; active
         <option value="km_asc">Lowest km</option>
       </Select>
       <noscript>
-        <button type="submit" className="h-11 rounded-full bg-teal px-5 text-sm font-semibold text-ink">
+        <button type="submit" className="h-11 shrink-0 rounded-full bg-teal px-5 text-sm font-semibold text-ink">
           Apply
         </button>
       </noscript>
       {hasFilters && (
         <Link
           href="/cars"
-          className="col-span-2 self-center text-sm text-teal hover:text-teal-soft sm:col-span-4 xl:col-span-7"
+          className="order-first shrink-0 self-center whitespace-nowrap text-sm text-teal hover:text-teal-soft sm:order-none sm:col-span-4 xl:col-span-7"
         >
           Clear filters
         </Link>
@@ -126,7 +128,7 @@ function Select({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
+    <label className="block shrink-0 sm:shrink">
       <span className="sr-only">{text}</span>
       <select name={name} defaultValue={value ?? ""} disabled={disabled} className={`${select} disabled:opacity-50`}>
         <option value="">{placeholder}</option>

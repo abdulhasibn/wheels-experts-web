@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import clsx from "clsx";
 import { CarGallery } from "@/components/cars/car-gallery";
 import { TestDriveButton } from "@/components/cars/test-drive-button";
 import { Nav } from "@/components/nav";
@@ -39,7 +40,7 @@ export default async function CarPage({ params }: { params: Params }) {
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-7xl px-4 pb-32 pt-24 sm:px-10 md:pb-20 md:pt-32 lg:px-16">
+      <main className="mx-auto max-w-7xl px-4 pb-20 pt-24 sm:px-10 md:pt-32 lg:px-16">
         <Link href="/cars" className="inline-flex items-center gap-1.5 text-sm text-muted transition hover:text-fg">
           <ArrowLeft aria-hidden className="size-4" /> All cars
         </Link>
@@ -85,14 +86,18 @@ export default async function CarPage({ params }: { params: Params }) {
 
       {/* Phones: the action stays in reach while scrolling the photos and specs. */}
       <div className="fixed inset-x-0 bottom-0 z-40 bg-ink/90 backdrop-blur-xl flex items-center gap-3 border-t border-edge/[0.06] px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:hidden">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-xs text-muted">{title}</p>
-          <p className="font-semibold tabular-nums">{formatPrice(car.listedPrice)}</p>
+          <p className={clsx("truncate font-semibold tabular-nums", car.listedPrice === null && "text-sm text-muted")}>
+            {formatPrice(car.listedPrice)}
+          </p>
         </div>
-        <TestDriveButton vehicleId={car.id} carName={title} className="ml-auto h-12 shrink-0 px-5 text-sm" />
+        <TestDriveButton vehicleId={car.id} carName={title} className="h-12 shrink-0 px-5 text-sm" />
       </div>
 
       <Footer />
+      {/* Room for the fixed bar, so it never covers the footer. */}
+      <div aria-hidden className="h-[calc(5rem+env(safe-area-inset-bottom))] md:hidden" />
     </>
   );
 }

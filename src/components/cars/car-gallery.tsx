@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import clsx from "clsx";
 import { CarPhoto } from "./car-card";
 
 export function CarGallery({ photos, title }: { photos: { url: string; category: string }[]; title: string }) {
   const [index, setIndex] = useState(0);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   if (photos.length === 0) {
     return <CarPhoto src={null} alt={title} className="aspect-[4/3] w-full rounded-[28px]" />;
@@ -15,9 +16,28 @@ export function CarGallery({ photos, title }: { photos: { url: string; category:
   const current = photos[index] ?? photos[0]!;
   const step = (delta: number) => setIndex((i) => (i + delta + photos.length) % photos.length);
 
+  // Phones: a horizontal swipe on the photo steps through the gallery.
+  const onTouchStart = (event: React.TouchEvent) => {
+    const t = event.touches[0]!;
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (event: React.TouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start || photos.length < 2) return;
+    const t = event.changedTouches[0]!;
+    const dx = t.clientX - start.x;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(t.clientY - start.y)) step(dx < 0 ? 1 : -1);
+  };
+
   return (
-    <div className="space-y-3">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-[28px] bg-ink-3">
+    // min-w-0: as a grid item, the thumbnail strip would otherwise widen the page on phones.
+    <div className="min-w-0 space-y-3">
+      <div
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        className="relative aspect-[4/3] touch-pan-y overflow-hidden rounded-[28px] bg-ink-3"
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={current.url}
