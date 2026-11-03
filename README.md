@@ -18,7 +18,7 @@ The stack is Next.js 16, Tailwind v4, React Three Fiber, GSAP ScrollTrigger and 
 | Studio lighting | `public/env/studio.hdr`: Poly Haven "Studio Small 09" (CC0) |
 | Camera shots per scroll panel | `src/lib/showcase.ts` |
 | Phone, WhatsApp number, address, hours, stats, testimonials | `src/data/site.ts` |
-| Cars on the floor | `src/data/inventory.ts`. Sample data for now; there is no public inventory API yet |
+| Cars on the floor | Live from AutoLead's anonymous `/public` API. Set `NEXT_PUBLIC_API_URL` (default `http://localhost:4000`); the backend must list this site's origin in `PUBLIC_SITE_ORIGINS` |
 | Staff login link | `NEXT_PUBLIC_STAFF_PORTAL_URL` |
 
-Test-drive and valuation requests open WhatsApp with the message pre-filled. To have them land in AutoLead as `website` leads, the backend needs a public lead-intake endpoint.
+`/cars` lists every Listed car with filters; `/cars/[id]` shows photos and specs. **Location for test drive** asks for name + mobile, creates a `website` lead in AutoLead (`POST /public/test-drive-requests`), and only then reveals the showroom address. Stock pages revalidate every 5 minutes. Valuation requests still open WhatsApp.
