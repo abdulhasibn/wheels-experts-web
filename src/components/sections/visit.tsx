@@ -6,6 +6,7 @@ import { Reveal } from "@/components/ui/reveal";
 import type { PublicCar } from "@/lib/api";
 import { site } from "@/data/site";
 import { interestStore, useStore } from "@/lib/store";
+import { track } from "@/lib/analytics";
 import { testDriveMessage, whatsappLink } from "@/lib/whatsapp";
 
 const field =
@@ -37,6 +38,7 @@ export function Visit({ cars }: { cars: PublicCar[] }) {
       car: car ? `${car.year} ${car.make} ${car.model} ${car.variant}` : "",
       date: String(data.get("date") ?? ""),
     });
+    track("whatsapp_click", { props: { from: "visit_form" } });
     window.open(whatsappLink(message), "_blank", "noopener,noreferrer");
   }
 

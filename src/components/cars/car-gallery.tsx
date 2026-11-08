@@ -3,18 +3,28 @@
 import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import clsx from "clsx";
+import { track } from "@/lib/analytics";
 import { CarPhoto } from "./car-card";
 
 export function CarGallery({ photos, title }: { photos: { url: string; category: string }[]; title: string }) {
   const [index, setIndex] = useState(0);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const browsed = useRef(false);
 
   if (photos.length === 0) {
     return <CarPhoto src={null} alt={title} className="aspect-[4/3] w-full rounded-[28px]" />;
   }
 
   const current = photos[index] ?? photos[0]!;
-  const step = (delta: number) => setIndex((i) => (i + delta + photos.length) % photos.length);
+  // Recorded once per visit: the buyer went past the cover photo.
+  const show = (next: (i: number) => number) => {
+    if (!browsed.current) {
+      browsed.current = true;
+      track("gallery_open");
+    }
+    setIndex(next);
+  };
+  const step = (delta: number) => show((i) => (i + delta + photos.length) % photos.length);
 
   // Phones: a horizontal swipe on the photo steps through the gallery.
   const onTouchStart = (event: React.TouchEvent) => {
@@ -75,7 +85,7 @@ export function CarGallery({ photos, title }: { photos: { url: string; category:
             <button
               key={photo.url}
               type="button"
-              onClick={() => setIndex(i)}
+              onClick={() => show(() => i)}
               aria-label={`Show ${photo.category} photo`}
               aria-current={i === index}
               className={clsx(

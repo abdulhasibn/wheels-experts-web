@@ -5,6 +5,7 @@ import { CarFilters, type ActiveFilters } from "@/components/cars/car-filters";
 import { StockUnavailable } from "@/components/cars/stock-unavailable";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/sections/footer";
+import { TrackEvent } from "@/components/track-event";
 import { getCars, getFilterOptions, type FilterOptions, type Page, type PublicCar } from "@/lib/api";
 
 export const metadata: Metadata = {
@@ -43,6 +44,7 @@ export default async function CarsPage({ searchParams }: { searchParams: SearchP
     // Shown below as a friendly fallback; ISR keeps serving the last good page.
   }
 
+  const filtered = FILTER_KEYS.some((key) => key !== "sort" && active[key]);
   const pages = cars ? Math.max(1, Math.ceil(cars.total / PAGE_SIZE)) : 1;
   const pageHref = (n: number) => {
     const query = new URLSearchParams();
@@ -74,6 +76,21 @@ export default async function CarsPage({ searchParams }: { searchParams: SearchP
             <div className="mt-8 md:mt-10">
               <CarFilters options={options} active={active} />
             </div>
+            {/* What buyers ask for — including searches we have no car for. */}
+            {filtered && page === 1 && (
+              <TrackEvent
+                type="filter_apply"
+                props={{
+                  makeId: active.makeId ?? null,
+                  modelId: active.modelId ?? null,
+                  bodyType: active.bodyType ?? null,
+                  fuelType: active.fuelType ?? null,
+                  transmission: active.transmission ?? null,
+                  priceMax: active.priceMax ? Number(active.priceMax) : null,
+                  resultCount: cars.total,
+                }}
+              />
+            )}
 
             {cars.items.length === 0 ? (
               <div className="mt-12 rounded-[28px] border border-dashed border-edge/10 p-10 text-center">

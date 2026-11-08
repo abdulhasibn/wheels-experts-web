@@ -7,6 +7,7 @@ import { CarGallery } from "@/components/cars/car-gallery";
 import { TestDriveButton } from "@/components/cars/test-drive-button";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/sections/footer";
+import { TrackEvent } from "@/components/track-event";
 import { getCar } from "@/lib/api";
 import { carTitle, formatKm, formatOwners, formatPrice, label } from "@/lib/format";
 
@@ -40,6 +41,7 @@ export default async function CarPage({ params }: { params: Params }) {
   return (
     <>
       <Nav />
+      <TrackEvent type="car_view" vehicleId={car.id} props={{ listedPrice: car.listedPrice }} />
       <main className="mx-auto max-w-7xl px-4 pb-20 pt-24 sm:px-10 md:pt-32 lg:px-16">
         <Link href="/cars" className="inline-flex items-center gap-1.5 text-sm text-muted transition hover:text-fg">
           <ArrowLeft aria-hidden className="size-4" /> All cars

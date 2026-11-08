@@ -3,6 +3,8 @@
  * Responses carry only buyer-safe fields — no plate, owner or internal prices.
  */
 
+import type { Attribution } from "./analytics";
+
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/$/, "");
 
 /** Stock pages are cached this long; signed photo URLs live 24h, far longer. */
@@ -124,6 +126,8 @@ export async function requestTestDrive(input: {
   fullName: string;
   phone: string;
   fax: string;
+  /** Where the visitor came from — credits the lead to Instagram, Google, etc. */
+  attribution?: Attribution;
 }): Promise<TestDriveReceipt> {
   const response = await fetch(`${API_URL}/public/test-drive-requests`, {
     method: "POST",
