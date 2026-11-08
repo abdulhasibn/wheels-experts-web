@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { CheckCircle2, Clock, Loader2, MapPin, Navigation, Phone, X } from "lucide-react";
 import clsx from "clsx";
 import { ApiError, requestTestDrive, type Showroom } from "@/lib/api";
+import { getAttribution } from "@/lib/analytics";
 import { parseMobile } from "@/lib/format";
 
 const field =
@@ -65,6 +66,7 @@ export function TestDriveSheet({ vehicleId, carName, open, onClose }: TestDriveS
         fullName,
         phone,
         fax: String(data.get("fax") ?? ""),
+        attribution: getAttribution(),
       });
       setState({ step: "done", showroom: receipt.showroom, vehicleAvailable: receipt.vehicleAvailable });
     } catch (err) {
@@ -243,6 +245,7 @@ function LocationCard({
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
             <a
               href={mapUrl ?? "#"}
+              data-track="directions_click"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-teal px-5 text-sm font-semibold text-ink transition hover:bg-teal-soft"

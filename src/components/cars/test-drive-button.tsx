@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { MapPin } from "lucide-react";
 import clsx from "clsx";
+import { track } from "@/lib/analytics";
 import { TestDriveSheet } from "./test-drive-sheet";
 
 export function TestDriveButton({
@@ -21,7 +22,10 @@ export function TestDriveButton({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          track("test_drive_open", { vehicleId });
+          setOpen(true);
+        }}
         className={clsx(
           "inline-flex h-13 items-center justify-center gap-2 rounded-full bg-teal px-6 text-base font-semibold text-ink transition hover:bg-teal-soft",
           className,

@@ -25,6 +25,10 @@ export function Footer() {
         </div>
       </div>
       <p className="mx-auto mt-10 max-w-7xl text-[11px] leading-relaxed text-subtle/70">
+        We count visits and which cars are viewed, with an anonymous id, to know which cars and ads people like. No
+        third-party trackers.
+      </p>
+      <p className="mx-auto mt-2 max-w-7xl text-[11px] leading-relaxed text-subtle/70">
         Hero photo via Wikimedia Commons:{" "}
         <a
           href="https://commons.wikimedia.org/wiki/File:2023_Honda_City_e-HEV_RS.jpg"
