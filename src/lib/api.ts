@@ -25,6 +25,14 @@ export interface PublicCar {
   /** Rupees; null means "Price on request". */
   listedPrice: number | null;
   coverImageUrl: string | null;
+  /** Missing (older API) is treated as available. */
+  status?: CarStatus;
+}
+
+export type CarStatus = "available" | "sold";
+
+export function carStatus(car: { status?: CarStatus }): CarStatus {
+  return car.status === "sold" ? "sold" : "available";
 }
 
 export interface PublicCarDetail extends PublicCar {
@@ -106,7 +114,7 @@ export function getCars(query: CarQuery = {}): Promise<Page<PublicCar>> {
   return get<Page<PublicCar>>(`/public/vehicles?${params}`);
 }
 
-/** Null when the car is unknown, sold or no longer listed. */
+/** Null when the car is unknown or no longer listed. Sold cars still return (status: "sold"). */
 export async function getCar(id: string): Promise<PublicCarDetail | null> {
   try {
     return await get<PublicCarDetail>(`/public/vehicles/${encodeURIComponent(id)}`);
@@ -138,4 +146,33 @@ export async function requestTestDrive(input: {
     throw await toApiError(response);
   }
   return (await response.json()) as TestDriveReceipt;
+}
+
+export interface PreferenceRequestInput {
+  fullName: string;
+  phone: string;
+  fax: string;
+  attribution?: Attribution;
+  /** Rupees. */
+  budgetMax?: number;
+  bodyTypes?: string[];
+  fuelTypes?: string[];
+  transmissions?: string[];
+  make?: string;
+  model?: string;
+  referenceVehicleId?: string;
+}
+
+/** Browser-side: files (or, for the same contact, updates) a "find me a car" lead. */
+export async function requestPreferences(input: PreferenceRequestInput): Promise<{ created: boolean }> {
+  const response = await fetch(`${API_URL}/public/preference-requests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw await toApiError(response);
+  }
+  const body = (await response.json().catch(() => null)) as { created?: boolean } | null;
+  return { created: body?.created ?? response.status === 201 };
 }

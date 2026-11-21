@@ -13,6 +13,9 @@ export type EventType =
   | "gallery_open"
   | "filter_apply"
   | "test_drive_open"
+  | "preference_open"
+  | "preference_contact_submit"
+  | "preference_details_submit"
   | "whatsapp_click"
   | "call_click"
   | "directions_click";

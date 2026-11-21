@@ -4,11 +4,13 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import clsx from "clsx";
 import { CarGallery } from "@/components/cars/car-gallery";
+import { StatusTag } from "@/components/cars/status-tag";
+import { PreferenceCta } from "@/components/leads/preference-cta";
 import { TestDriveButton } from "@/components/cars/test-drive-button";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/sections/footer";
 import { TrackEvent } from "@/components/track-event";
-import { getCar } from "@/lib/api";
+import { carStatus, getCar } from "@/lib/api";
 import { carTitle, formatKm, formatOwners, formatPrice, label } from "@/lib/format";
 
 type Params = Promise<{ id: string }>;
@@ -28,13 +30,32 @@ export default async function CarPage({ params }: { params: Params }) {
   if (!car) notFound();
 
   const title = carTitle(car);
+  const sold = carStatus(car) === "sold";
+  const findLikeThis = (className: string) => (
+    <PreferenceCta
+      variant="primary"
+      source="sold_detail"
+      className={className}
+      intro="This one's gone. Tell us how to reach you and we'll call when a similar car lands."
+      prefill={{
+        make: car.make,
+        model: car.model,
+        bodyTypes: car.bodyType ? [car.bodyType] : undefined,
+        fuelTypes: [car.fuelType],
+        transmissions: [car.transmission],
+        budgetMax: car.listedPrice ?? undefined,
+        referenceVehicleId: car.id,
+      }}
+    >
+      Find me one like this
+    </PreferenceCta>
+  );
   const specs: [string, string][] = [
     ["Year", String(car.year)],
     ["Kilometres", formatKm(car.kmDriven)],
     ["Fuel", label(car.fuelType)],
     ["Gearbox", label(car.transmission)],
     ["Ownership", formatOwners(car.previousOwners)],
-    ...(car.bodyType ? [["Body", label(car.bodyType)] as [string, string]] : []),
     ...(car.colour ? [["Colour", car.colour] as [string, string]] : []),
   ];
 
@@ -51,7 +72,10 @@ export default async function CarPage({ params }: { params: Params }) {
           <CarGallery photos={car.photos} title={title} />
 
           <div className="lg:sticky lg:top-28 lg:self-start">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-subtle">{car.make}</p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-subtle">{car.make}</p>
+              <StatusTag status={carStatus(car)} />
+            </div>
             <h1 className="mt-2 text-[clamp(2rem,4vw,3.2rem)] font-semibold leading-[1.05] tracking-[-0.03em]">
               {car.model}
             </h1>
@@ -72,8 +96,19 @@ export default async function CarPage({ params }: { params: Params }) {
             </dl>
 
             <div className="mt-8 hidden md:block">
-              <TestDriveButton vehicleId={car.id} carName={title} className="w-full" />
-              <p className="mt-3 text-center text-xs text-subtle">Free, no obligation. We&apos;ll call to fix a time.</p>
+              {sold ? (
+                <>
+                  {findLikeThis("w-full")}
+                  <p className="mt-3 text-center text-xs text-subtle">
+                    This one&apos;s gone. Tell us how to reach you and we&apos;ll call when a similar car lands.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <TestDriveButton vehicleId={car.id} carName={title} className="w-full" />
+                  <p className="mt-3 text-center text-xs text-subtle">Free, no obligation. We&apos;ll call to fix a time.</p>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -94,7 +129,11 @@ export default async function CarPage({ params }: { params: Params }) {
             {formatPrice(car.listedPrice)}
           </p>
         </div>
-        <TestDriveButton vehicleId={car.id} carName={title} className="h-12 shrink-0 px-5 text-sm" />
+        {sold ? (
+          findLikeThis("h-12 shrink-0 px-5 text-sm")
+        ) : (
+          <TestDriveButton vehicleId={car.id} carName={title} className="h-12 shrink-0 px-5 text-sm" />
+        )}
       </div>
 
       <Footer />

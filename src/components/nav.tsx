@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import clsx from "clsx";
 import { site } from "@/data/site";
+import { PreferenceCta } from "./leads/preference-cta";
 import { Logo } from "./ui/logo";
 
 // Root-relative so the same nav works on the home page and on /cars.
@@ -70,6 +71,11 @@ export function Nav() {
               </Link>
             </li>
           ))}
+          <li>
+            <PreferenceCta variant="nav" source="nav">
+              Get a car found
+            </PreferenceCta>
+          </li>
         </ul>
         <div className="flex items-center gap-2.5">
           <Link
@@ -116,6 +122,16 @@ export function Nav() {
                 </Link>
               </li>
             ))}
+            <li>
+              {/* The menu stays mounted behind the sheet, so the sheet isn't torn down. */}
+              <PreferenceCta
+                variant="nav"
+                source="nav_mobile"
+                className="flex h-12 w-full items-center rounded-xl px-4 text-left text-base text-muted hover:bg-edge/5"
+              >
+                Get a car found
+              </PreferenceCta>
+            </li>
           </ul>
         </>
       )}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { LayoutGroup, motion } from "motion/react";
 import { Reveal } from "@/components/ui/reveal";
 import { CarPhoto } from "@/components/cars/car-card";
+import { PreferenceCta } from "@/components/leads/preference-cta";
 import type { PublicCar } from "@/lib/api";
 import { formatKm, formatPrice, label } from "@/lib/format";
 import { priceLakh, scoreCar, type PricedCar } from "@/lib/match";
@@ -154,6 +155,7 @@ export function Match({ cars }: { cars: PublicCar[] }) {
           </div>
         </div>
 
+        <div>
         <LayoutGroup>
           <ol className="flex flex-col gap-3" aria-live="polite">
             {ranked.map(({ car, score }, i) => (
@@ -190,6 +192,26 @@ export function Match({ cars }: { cars: PublicCar[] }) {
             ))}
           </ol>
         </LayoutGroup>
+        <div className="mt-5">
+          <PreferenceCta
+            variant="link"
+            source="match"
+            options={{
+              bodyTypes: Object.keys(options.body),
+              fuelTypes: Object.keys(options.fuel),
+              transmissions: Object.keys(options.transmission),
+            }}
+            prefill={{
+              budgetMax: Math.round(budgetLakh * 1e5),
+              bodyTypes: bodyType ? [bodyType] : undefined,
+              fuelTypes: fuel ? [fuel] : undefined,
+              transmissions: transmission ? [transmission] : undefined,
+            }}
+          >
+            Didn&apos;t see the one? We&apos;ll hunt it down for you →
+          </PreferenceCta>
+        </div>
+        </div>
       </div>
     </section>
   );

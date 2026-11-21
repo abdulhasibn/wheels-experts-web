@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import { Fragment } from "react";
 import Link from "next/link";
+import { PreferenceCta } from "@/components/leads/preference-cta";
 import { CarCard } from "@/components/cars/car-card";
 import { CarFilters, type ActiveFilters } from "@/components/cars/car-filters";
 import { StockUnavailable } from "@/components/cars/stock-unavailable";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/sections/footer";
 import { TrackEvent } from "@/components/track-event";
-import { getCars, getFilterOptions, type FilterOptions, type Page, type PublicCar } from "@/lib/api";
+import { carStatus, getCars, getFilterOptions, type FilterOptions, type Page, type PublicCar } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Pre-owned cars in stock — Wheels Experts",
@@ -54,19 +56,49 @@ export default async function CarsPage({ searchParams }: { searchParams: SearchP
     return qs ? `/cars?${qs}` : "/cars";
   };
 
+  // Available cars come first, so a page that reaches the sold ones has seen every available car.
+  const soldOnPage = cars?.items.filter((car) => carStatus(car) === "sold").length ?? 0;
+  const countText =
+    cars && soldOnPage > 0
+      ? `${(page - 1) * PAGE_SIZE + cars.items.length - soldOnPage} available · ${
+          cars.total - ((page - 1) * PAGE_SIZE + cars.items.length - soldOnPage)
+        } recently sold`
+      : cars && cars.total <= PAGE_SIZE && page === 1
+        ? `${cars.total} available · 0 recently sold`
+        : null;
+
+  const make = options?.makes.find((m) => m.id === active.makeId);
+  const prefill = {
+    budgetMax: active.priceMax ? Number(active.priceMax) || undefined : undefined,
+    bodyTypes: active.bodyType ? [active.bodyType] : undefined,
+    fuelTypes: active.fuelType ? [active.fuelType] : undefined,
+    transmissions: active.transmission ? [active.transmission] : undefined,
+    make: make?.name,
+    model: make?.models.find((m) => m.id === active.modelId)?.name,
+  };
+  const cta = (variant: "banner") =>
+    options && (
+      <PreferenceCta
+        variant={variant}
+        source="cars"
+        prefill={prefill}
+        options={{ bodyTypes: options.bodyTypes, fuelTypes: options.fuelTypes, transmissions: options.transmissions }}
+      />
+    );
+
   return (
     <>
       <Nav />
       <main className="mx-auto max-w-7xl px-4 pb-20 pt-28 sm:px-10 md:pt-36 lg:px-16">
-        <p className="eyebrow mb-4">In stock</p>
+        <p className="eyebrow mb-4">Our floor</p>
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <h1 className="text-[clamp(2.2rem,5vw,4rem)] font-semibold leading-[1.02] tracking-[-0.035em]">
             Every car on our floor.
           </h1>
           {cars && (
             <p className="text-muted">
-              {cars.total} {cars.total === 1 ? "car" : "cars"}
-              {cars.total > 0 && " · tap one for photos and the test-drive location"}
+              {countText ?? `${cars.total} ${cars.total === 1 ? "car" : "cars"}`}
+              {cars.total > 0 && " · tap one for photos and details"}
             </p>
           )}
         </div>
@@ -96,17 +128,22 @@ export default async function CarsPage({ searchParams }: { searchParams: SearchP
               <div className="mt-12 rounded-[28px] border border-dashed border-edge/10 p-10 text-center">
                 <p className="text-xl font-semibold">No cars match those filters.</p>
                 <p className="mt-2 text-muted">Try a wider budget or another body style.</p>
+                <div className="mx-auto mt-8 max-w-md text-left">{cta("banner")}</div>
                 <Link href="/cars" className="mt-6 inline-block text-sm font-medium text-teal hover:text-teal-soft">
                   See all cars →
                 </Link>
               </div>
             ) : (
               <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {cars.items.map((car) => (
-                  <li key={car.id}>
-                    <CarCard car={car} className="h-full" />
-                  </li>
+                {cars.items.map((car, i) => (
+                  <Fragment key={car.id}>
+                    <li>
+                      <CarCard car={car} className="h-full" />
+                    </li>
+                    {i === 5 && <li>{cta("banner")}</li>}
+                  </Fragment>
                 ))}
+                {cars.items.length < 6 && <li>{cta("banner")}</li>}
               </ul>
             )}
 
