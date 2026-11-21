@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import clsx from "clsx";
 import { site } from "@/data/site";
+import { track } from "@/lib/analytics";
+import { PreferenceSheet } from "./leads/preference-sheet";
 import { Logo } from "./ui/logo";
 
 // Root-relative so the same nav works on the home page and on /cars.
@@ -22,7 +24,22 @@ export function Nav() {
   const [hidden, setHidden] = useState(false);
   const [solid, setSolid] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const openedFromMenu = useRef(false);
   const pathname = usePathname();
+
+  const openSheet = (source: string, fromMenu: boolean) => {
+    track("preference_open", { props: { source } });
+    openedFromMenu.current = fromMenu;
+    setSheetOpen(true);
+    if (fromMenu) setMenuOpen(false);
+  };
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+    // The menu trigger is gone by now, so hand focus to the menu button instead.
+    if (openedFromMenu.current) requestAnimationFrame(() => menuButtonRef.current?.focus());
+  }, []);
 
   // Links close the phone menu themselves; Escape closes it too.
   useEffect(() => {
@@ -70,6 +87,11 @@ export function Nav() {
               </Link>
             </li>
           ))}
+          <li>
+            <button type="button" onClick={() => openSheet("nav", false)} className="transition-colors hover:text-fg">
+              Get a car found
+            </button>
+          </li>
         </ul>
         <div className="flex items-center gap-2.5">
           <Link
@@ -80,6 +102,7 @@ export function Nav() {
           </Link>
           <button
             type="button"
+            ref={menuButtonRef}
             onClick={() => setMenuOpen((open) => !open)}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
@@ -116,9 +139,19 @@ export function Nav() {
                 </Link>
               </li>
             ))}
+            <li>
+              <button
+                type="button"
+                onClick={() => openSheet("nav_mobile", true)}
+                className="flex h-12 w-full items-center rounded-xl px-4 text-left text-base text-muted hover:bg-edge/5"
+              >
+                Get a car found
+              </button>
+            </li>
           </ul>
         </>
       )}
+      {sheetOpen && <PreferenceSheet open onClose={closeSheet} />}
     </header>
   );
 }

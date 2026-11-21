@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ArrowUpRight, Camera } from "lucide-react";
 import clsx from "clsx";
-import type { PublicCar } from "@/lib/api";
+import { carStatus, type PublicCar } from "@/lib/api";
+import { StatusTag } from "./status-tag";
 import { carTitle, formatKm, formatOwners, formatPrice, label } from "@/lib/format";
 
 /** Signed, expiring photo URL — rendered as a plain img so no cache holds a dead link. */
@@ -20,6 +21,7 @@ export function CarPhoto({ src, alt, className }: { src: string | null; alt: str
 
 export function CarCard({ car, className }: { car: PublicCar; className?: string }) {
   const title = carTitle(car);
+  const sold = carStatus(car) === "sold";
   return (
     <Link
       href={`/cars/${car.id}`}
@@ -32,7 +34,10 @@ export function CarCard({ car, className }: { car: PublicCar; className?: string
         <CarPhoto
           src={car.coverImageUrl}
           alt={title}
-          className="absolute inset-0 size-full transition duration-[1200ms] ease-out-expo group-hover:scale-[1.06]"
+          className={clsx(
+            "absolute inset-0 size-full transition duration-[1200ms] ease-out-expo group-hover:scale-[1.06]",
+            sold && "grayscale-[60%] opacity-80",
+          )}
         />
         <div
           aria-hidden
@@ -42,9 +47,7 @@ export function CarCard({ car, className }: { car: PublicCar; className?: string
               "linear-gradient(180deg, rgb(0 0 0 / 0.25) 0%, transparent 30%, transparent 60%, var(--color-ink-2) 100%)",
           }}
         />
-        <span className="absolute left-4 top-4 rounded-full bg-black/45 px-3 py-1 text-[11px] font-medium text-white/85 backdrop-blur">
-          {formatOwners(car.previousOwners)}
-        </span>
+        <StatusTag status={carStatus(car)} className="absolute left-4 top-4" />
       </div>
       <div className="flex flex-1 flex-col gap-4 p-5 sm:p-6">
         <div className="min-w-0">
@@ -53,15 +56,19 @@ export function CarCard({ car, className }: { car: PublicCar; className?: string
           <p className="mt-1 truncate text-sm text-muted">{car.variant}</p>
         </div>
         <p className="text-sm text-muted">
-          {car.year} · {formatKm(car.kmDriven)} · {label(car.fuelType)} · {label(car.transmission)}
+          {car.year} · {formatKm(car.kmDriven)} · {label(car.fuelType)} · {label(car.transmission)} · {formatOwners(car.previousOwners)}
         </p>
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-edge/[0.06] pt-4">
           <span className={clsx("font-semibold tabular-nums", car.listedPrice === null ? "text-sm text-muted" : "text-xl")}>
             {formatPrice(car.listedPrice)}
           </span>
-          <span className="inline-flex items-center gap-1 text-sm font-medium text-teal">
-            View <ArrowUpRight aria-hidden className="size-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-          </span>
+          {sold ? (
+            <span className="text-sm font-medium text-subtle">Sold</span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-teal">
+              View <ArrowUpRight aria-hidden className="size-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </span>
+          )}
         </div>
       </div>
     </Link>

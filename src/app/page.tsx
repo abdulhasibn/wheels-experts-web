@@ -7,7 +7,7 @@ import { Showcase } from "@/components/sections/showcase";
 import { Trust } from "@/components/sections/trust";
 import { Visit } from "@/components/sections/visit";
 import { site } from "@/data/site";
-import { getCars, type Page, type PublicCar } from "@/lib/api";
+import { carStatus, getCars, type Page, type PublicCar } from "@/lib/api";
 import { SmoothScroll } from "@/lib/smooth-scroll";
 
 /** Cars on the home page strip; Match scores a wider slice of stock. */
@@ -23,16 +23,21 @@ export default async function Home() {
     offset: 0,
   }));
 
+  // Sold cars belong on /cars and their detail page only: never feature, score or link them here.
+  // Available cars sort first, so once a sold car shows up we have seen every available one.
+  const available = stock.items.filter((car) => carStatus(car) === "available");
+  const availableTotal = available.length < stock.items.length || stock.items.length >= stock.total ? available.length : stock.total;
+
   return (
     <SmoothScroll>
       <Nav />
       <main>
         <Showcase />
-        <Collection cars={stock.items.slice(0, FEATURED)} total={stock.total} />
-        <Match cars={stock.items} />
+        <Collection cars={available.slice(0, FEATURED)} total={availableTotal} />
+        <Match cars={available} />
         <Sell />
         {site.socialProofReady && <Trust />}
-        {site.contactReady && <Visit cars={stock.items} />}
+        {site.contactReady && <Visit cars={available} />}
       </main>
       <Footer />
     </SmoothScroll>
