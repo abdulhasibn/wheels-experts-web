@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Suspense } from "react";
 import { AnalyticsProvider } from "@/components/analytics-provider";
+import { isIndexable } from "@/lib/site-env";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_IN",
   },
+  robots: isIndexable ? undefined : { index: false, follow: false },
 };
 
 export const viewport: Viewport = {
