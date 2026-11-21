@@ -57,6 +57,7 @@ export default async function CarsPage({ searchParams }: { searchParams: SearchP
   };
 
   // Available cars come first, so a page that reaches the sold ones has seen every available car.
+  // Only state the available/sold split when this page proves it; otherwise just "N cars".
   const soldOnPage = cars?.items.filter((car) => carStatus(car) === "sold").length ?? 0;
   const countText =
     cars && soldOnPage > 0

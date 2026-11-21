@@ -49,6 +49,17 @@ interface PreferenceSheetProps {
   intro?: string;
 }
 
+/** Mirrors the API: letters, digits, space and . & ' - only; at most 60 characters. */
+function cleanCarText(value: string | undefined): string | undefined {
+  const cleaned = (value ?? "")
+    .replace(/[^\p{L}\p{N} .&'-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60)
+    .trim();
+  return cleaned || undefined;
+}
+
 type Phase = "contact" | "sending-contact" | "details" | "sending-details" | "done";
 
 /**
@@ -58,6 +69,8 @@ type Phase = "contact" | "sending-contact" | "details" | "sending-details" | "do
 export function PreferenceSheet({ open, onClose, prefill, options, intro }: PreferenceSheetProps) {
   const titleId = useId();
   const nameRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const [phase, setPhase] = useState<Phase>("contact");
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
@@ -77,19 +90,59 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
 
   useEffect(() => {
     if (!open) return;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") return onClose();
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      // Keep Tab inside the dialog.
+      const focusable = [
+        ...dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ].filter((el) => el.tabIndex >= 0 && !el.closest("[aria-hidden='true']"));
+      const firstEl = focusable[0];
+      const lastEl = focusable[focusable.length - 1];
+      if (!firstEl || !lastEl) return;
+      const active = document.activeElement;
+      if (!dialogRef.current.contains(active)) {
+        event.preventDefault();
+        firstEl.focus();
+      } else if (event.shiftKey && (active === firstEl || active === headingRef.current)) {
+        event.preventDefault();
+        lastEl.focus();
+      } else if (!event.shiftKey && active === lastEl) {
+        event.preventDefault();
+        firstEl.focus();
+      }
+    };
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", onKey);
+      if (trigger?.isConnected) trigger.focus();
     };
   }, [open, onClose]);
 
   useEffect(() => {
-    if (open && phase === "contact") nameRef.current?.focus();
+    if (!open) return;
+    if (phase === "contact") nameRef.current?.focus();
+    // New step or confirmation: announce it by moving focus to its heading.
+    else if (phase === "details" || phase === "done") headingRef.current?.focus();
   }, [open, phase]);
+
+  function prefillPayload() {
+    return {
+      ...(prefill?.budgetMax !== undefined && { budgetMax: prefill.budgetMax }),
+      ...(prefill?.bodyTypes?.length && { bodyTypes: prefill.bodyTypes }),
+      ...(prefill?.fuelTypes?.length && { fuelTypes: prefill.fuelTypes }),
+      ...(prefill?.transmissions?.length && { transmissions: prefill.transmissions }),
+      ...(cleanCarText(prefill?.make) && { make: cleanCarText(prefill?.make) }),
+      ...(cleanCarText(prefill?.model) && { model: cleanCarText(prefill?.model) }),
+      referenceVehicleId: prefill?.referenceVehicleId,
+    };
+  }
 
   async function onContactSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -111,13 +164,13 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
       await requestPreferences({
         ...next,
         attribution: getAttribution(),
-        referenceVehicleId: prefill?.referenceVehicleId,
+        ...prefillPayload(),
       });
       track("preference_contact_submit", { vehicleId: prefill?.referenceVehicleId });
       setContact(next);
       setPhase("details");
     } catch (err) {
-      setError(errorMessage(err));
+      setError(errorMessage(err, 1));
       setPhase("contact");
     }
   }
@@ -144,14 +197,14 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
         ...(bodyTypes.length > 0 && { bodyTypes }),
         ...(fuelTypes.length > 0 && { fuelTypes }),
         ...(transmissions.length > 0 && { transmissions }),
-        ...(make && { make }),
-        ...(model && { model }),
+        ...(cleanCarText(make) && { make: cleanCarText(make) }),
+        ...(cleanCarText(model) && { model: cleanCarText(model) }),
         referenceVehicleId: prefill?.referenceVehicleId,
       });
       track("preference_details_submit", { vehicleId: prefill?.referenceVehicleId });
       setPhase("done");
     } catch (err) {
-      setError(errorMessage(err));
+      setError(errorMessage(err, 2));
       setPhase("details");
     }
   }
@@ -162,8 +215,9 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-6">
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <button type="button" aria-hidden tabIndex={-1} onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -183,7 +237,7 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
         {phase === "done" ? (
           <div role="status">
             <CheckCircle2 aria-hidden className="size-9 text-teal" />
-            <h2 id={titleId} className="mt-4 pr-10 text-2xl font-semibold tracking-tight">
+            <h2 id={titleId} ref={headingRef} tabIndex={-1} className="mt-4 pr-10 text-2xl outline-none font-semibold tracking-tight">
               Thank you.
             </h2>
             <p className="mt-2 text-sm text-muted">Done — we&apos;ll call or WhatsApp you within a day with matches.</p>
@@ -281,7 +335,7 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
         ) : (
           <form onSubmit={onDetailsSubmit} noValidate>
             <p className="eyebrow mb-3">Step 2 of 2</p>
-            <h2 id={titleId} className="pr-10 text-2xl font-semibold tracking-tight">
+            <h2 id={titleId} ref={headingRef} tabIndex={-1} className="pr-10 text-2xl font-semibold tracking-tight outline-none">
               What are you after?
             </h2>
             <p className="mt-2 text-sm text-muted">
@@ -295,7 +349,7 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
                     Budget
                   </label>
                   <span className="text-lg font-semibold tabular-nums">
-                    {budget === null ? "Any budget" : `up to ${formatPrice(budget * 1e5)}`}
+                    {budget === null ? "Any budget" : `Up to ${formatPrice(budget * 1e5)}`}
                   </span>
                 </div>
                 <input
@@ -305,6 +359,7 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
                   max={BUDGET_MAX}
                   step={0.5}
                   value={budget ?? BUDGET_DEFAULT}
+                  aria-valuetext={budget === null ? "Any budget" : `Up to ${formatPrice(budget * 1e5)}`}
                   onChange={(e) => setBudget(Number(e.target.value))}
                   className="w-full"
                 />
@@ -409,11 +464,15 @@ function Chips({
   );
 }
 
-function errorMessage(err: unknown): string {
+function errorMessage(err: unknown, step: 1 | 2): string {
   if (err instanceof ApiError) {
     if (err.status === 429) return "We've received several requests from you already. Please call us instead.";
     if (err.code === "INVALID_PHONE") return "Enter a valid 10-digit Indian mobile number.";
-    if (err.status === 422) return "Please check your name and number.";
+    if (err.status === 422) {
+      return step === 1
+        ? "Please check your name and number."
+        : "We couldn't save those picks — try fewer or simpler choices.";
+    }
   }
   return "We couldn't send that just now. Please try again in a moment.";
 }

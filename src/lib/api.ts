@@ -164,7 +164,7 @@ export interface PreferenceRequestInput {
 }
 
 /** Browser-side: files (or, for the same contact, updates) a "find me a car" lead. */
-export async function requestPreferences(input: PreferenceRequestInput): Promise<{ created: boolean }> {
+export async function requestPreferences(input: PreferenceRequestInput): Promise<void> {
   const response = await fetch(`${API_URL}/public/preference-requests`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -173,6 +173,4 @@ export async function requestPreferences(input: PreferenceRequestInput): Promise
   if (!response.ok) {
     throw await toApiError(response);
   }
-  const body = (await response.json().catch(() => null)) as { created?: boolean } | null;
-  return { created: body?.created ?? response.status === 201 };
 }
