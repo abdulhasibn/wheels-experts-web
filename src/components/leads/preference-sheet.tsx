@@ -2,9 +2,17 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CheckCircle2, Loader2, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, Loader2, X } from "lucide-react";
 import clsx from "clsx";
-import { ApiError, requestPreferences } from "@/lib/api";
+import {
+  ApiError,
+  getCatalogMakes,
+  getCatalogModels,
+  getCatalogVariants,
+  requestPreferences,
+  type CatalogItem,
+  type CatalogVariant,
+} from "@/lib/api";
 import { getAttribution, track } from "@/lib/analytics";
 import { formatPrice, label, parseMobile } from "@/lib/format";
 
@@ -85,8 +93,23 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
   const [bodyTypes, setBodyTypes] = useState<string[]>(prefill?.bodyTypes ?? []);
   const [fuelTypes, setFuelTypes] = useState<string[]>(prefill?.fuelTypes ?? []);
   const [transmissions, setTransmissions] = useState<string[]>(prefill?.transmissions ?? []);
-  const prefilledCar = [prefill?.make, prefill?.model].filter(Boolean).join(" ");
-  const [carText, setCarText] = useState(prefilledCar);
+  const hasPrefilledExtras = Boolean(
+    prefill?.bodyTypes?.length || prefill?.fuelTypes?.length || prefill?.transmissions?.length,
+  );
+  const [moreOpen, setMoreOpen] = useState(hasPrefilledExtras);
+
+  // Catalog dropdowns: make -> model -> variant, each loaded when its parent is picked.
+  // `null` means still loading; an empty list after a failure leaves the form usable.
+  const [makes, setMakes] = useState<CatalogItem[] | null>(null);
+  const [modelsFor, setModelsFor] = useState<{ makeId: string; items: CatalogItem[] } | null>(null);
+  const [variantsFor, setVariantsFor] = useState<{ modelId: string; items: CatalogVariant[] } | null>(null);
+  const [makeId, setMakeId] = useState("");
+  const [modelId, setModelId] = useState("");
+  const [variantId, setVariantId] = useState("");
+  // A car page opens the sheet with names; they are matched to the catalog once, then dropped.
+  const models = makeId && modelsFor?.makeId === makeId ? modelsFor.items : null;
+  const variants = modelId && variantsFor?.modelId === modelId ? variantsFor.items : null;
+  const pendingPrefill = useRef({ make: prefill?.make, model: prefill?.model });
 
   useEffect(() => {
     if (!open) return;
@@ -131,6 +154,66 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
     // New step or confirmation: announce it by moving focus to its heading.
     else if (phase === "details" || phase === "done") headingRef.current?.focus();
   }, [open, phase]);
+
+  const onDetailsStep = open && (phase === "details" || phase === "sending-details");
+
+  useEffect(() => {
+    if (!onDetailsStep || makes !== null) return;
+    let cancelled = false;
+    getCatalogMakes()
+      .then((items) => {
+        if (cancelled) return;
+        setMakes(items);
+        const wanted = pendingPrefill.current.make?.toLowerCase();
+        const match = wanted ? items.find((m) => m.name.toLowerCase() === wanted) : undefined;
+        if (match) setMakeId(match.id);
+        else pendingPrefill.current = { make: undefined, model: undefined };
+      })
+      .catch(() => !cancelled && setMakes([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [onDetailsStep, makes]);
+
+  useEffect(() => {
+    if (!makeId) return;
+    let cancelled = false;
+    getCatalogModels(makeId)
+      .then((items) => {
+        if (cancelled) return;
+        setModelsFor({ makeId, items });
+        const wanted = pendingPrefill.current.model?.toLowerCase();
+        const match = wanted ? items.find((m) => m.name.toLowerCase() === wanted) : undefined;
+        if (match) setModelId(match.id);
+        pendingPrefill.current = { make: undefined, model: undefined };
+      })
+      .catch(() => !cancelled && setModelsFor({ makeId, items: [] }));
+    return () => {
+      cancelled = true;
+    };
+  }, [makeId]);
+
+  useEffect(() => {
+    if (!modelId) return;
+    let cancelled = false;
+    getCatalogVariants(modelId)
+      .then((items) => !cancelled && setVariantsFor({ modelId, items }))
+      .catch(() => !cancelled && setVariantsFor({ modelId, items: [] }));
+    return () => {
+      cancelled = true;
+    };
+  }, [modelId]);
+
+  // Changing a pick clears the ones below it.
+  function pickMake(id: string) {
+    setMakeId(id);
+    setModelId("");
+    setVariantId("");
+  }
+  function pickModel(id: string) {
+    setModelId(id);
+    setVariantId("");
+  }
 
   function prefillPayload() {
     return {
@@ -178,15 +261,11 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
   async function onDetailsSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!contact) return;
-    const text = carText.trim();
-    let make = prefill?.make;
-    let model = prefill?.model;
-    if (text !== prefilledCar) {
-      // Typed by the visitor: "Maruti Swift" → make + model, a single word → make only.
-      const [first = "", ...rest] = text.split(/\s+/).filter(Boolean);
-      make = first || undefined;
-      model = rest.join(" ") || undefined;
-    }
+    // Catalog picks win. Without one (nothing chosen, or the catalog was unreachable)
+    // fall back to the car the visitor came from, if any.
+    const picked = Boolean(makeId);
+    const make = picked ? undefined : prefill?.make;
+    const model = picked ? undefined : prefill?.model;
     setError(null);
     setPhase("sending-details");
     try {
@@ -199,6 +278,9 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
         ...(transmissions.length > 0 && { transmissions }),
         ...(cleanCarText(make) && { make: cleanCarText(make) }),
         ...(cleanCarText(model) && { model: cleanCarText(model) }),
+        ...(makeId && { makeId }),
+        ...(modelId && { modelId }),
+        ...(variantId && { variantId }),
         referenceVehicleId: prefill?.referenceVehicleId,
       });
       track("preference_details_submit", { vehicleId: prefill?.referenceVehicleId });
@@ -364,21 +446,52 @@ export function PreferenceSheet({ open, onClose, prefill, options, intro }: Pref
                   className="w-full"
                 />
               </div>
-              <Chips legend="Body type" values={choices.bodyTypes} selected={bodyTypes} onChange={setBodyTypes} />
-              <Chips legend="Fuel" values={choices.fuelTypes} selected={fuelTypes} onChange={setFuelTypes} />
-              <Chips legend="Gearbox" values={choices.transmissions} selected={transmissions} onChange={setTransmissions} />
-              <div>
-                <label htmlFor={`${titleId}-car`} className="mb-2 block text-sm text-muted">
-                  Make or model <span className="text-subtle">(optional)</span>
-                </label>
-                <input
-                  id={`${titleId}-car`}
-                  value={carText}
-                  onChange={(e) => setCarText(e.target.value)}
-                  maxLength={80}
-                  placeholder="e.g. Maruti Swift"
-                  className={field}
+              <div className="space-y-4">
+                <CatalogSelect
+                  id={`${titleId}-make`}
+                  label="Make"
+                  anyLabel="Any make"
+                  value={makeId}
+                  onChange={pickMake}
+                  items={makes}
+                  disabled={makes !== null && makes.length === 0}
                 />
+                <CatalogSelect
+                  id={`${titleId}-model`}
+                  label="Model"
+                  anyLabel="Any model"
+                  value={modelId}
+                  onChange={pickModel}
+                  items={makeId ? models : []}
+                  disabled={!makeId || (models !== null && models.length === 0)}
+                />
+                <CatalogSelect
+                  id={`${titleId}-variant`}
+                  label="Variant"
+                  anyLabel="Any variant"
+                  value={variantId}
+                  onChange={setVariantId}
+                  items={modelId ? variants : []}
+                  disabled={!modelId || (variants !== null && variants.length === 0)}
+                />
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  aria-expanded={moreOpen}
+                  aria-controls={`${titleId}-more`}
+                  onClick={() => setMoreOpen((v) => !v)}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-teal transition hover:text-teal-soft"
+                >
+                  {moreOpen ? "Hide extra details" : "Add more details"}
+                  <ChevronDown aria-hidden className={clsx("size-4 transition-transform", moreOpen && "rotate-180")} />
+                </button>
+                <div id={`${titleId}-more`} hidden={!moreOpen} className="mt-5 space-y-6">
+                  <Chips legend="Body type" values={choices.bodyTypes} selected={bodyTypes} onChange={setBodyTypes} />
+                  <Chips legend="Fuel" values={choices.fuelTypes} selected={fuelTypes} onChange={setFuelTypes} />
+                  <Chips legend="Gearbox" values={choices.transmissions} selected={transmissions} onChange={setTransmissions} />
+                </div>
               </div>
             </div>
 
@@ -420,6 +533,50 @@ function ErrorNote({ children }: { children: React.ReactNode }) {
     <p role="alert" className="mt-4 rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-4 py-3 text-sm text-red-200">
       {children}
     </p>
+  );
+}
+
+/** One catalog dropdown. Empty value means "any"; `null` items means still loading. */
+function CatalogSelect({
+  id,
+  label: text,
+  anyLabel,
+  value,
+  onChange,
+  items,
+  disabled,
+}: {
+  id: string;
+  label: string;
+  anyLabel: string;
+  value: string;
+  onChange: (next: string) => void;
+  items: { id: string; name: string }[] | null;
+  disabled: boolean;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-2 block text-sm text-muted">
+        {text} <span className="text-subtle">(optional)</span>
+      </label>
+      <div className="relative">
+        <select
+          id={id}
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={clsx(field, "appearance-none pr-11 disabled:opacity-50", value === "" && "text-subtle")}
+        >
+          <option value="">{items === null ? "Loading…" : anyLabel}</option>
+          {items?.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+        <ChevronDown aria-hidden className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-subtle" />
+      </div>
+    </div>
   );
 }
 

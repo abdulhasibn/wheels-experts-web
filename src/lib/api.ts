@@ -160,6 +160,10 @@ export interface PreferenceRequestInput {
   transmissions?: string[];
   make?: string;
   model?: string;
+  /** Catalog picks; the most specific one wins and the API derives its parents. */
+  makeId?: string;
+  modelId?: string;
+  variantId?: string;
   referenceVehicleId?: string;
 }
 
@@ -174,3 +178,41 @@ export async function requestPreferences(input: PreferenceRequestInput): Promise
     throw await toApiError(response);
   }
 }
+
+export interface CatalogItem {
+  id: string;
+  name: string;
+}
+
+export interface CatalogVariant extends CatalogItem {
+  fuelType: string | null;
+  transmission: string | null;
+}
+
+// The catalog changes rarely: remember each answer for the life of the page, so
+// reopening the sheet or going back to a make costs nothing. A failure is not
+// remembered, so the next open retries.
+const catalogCache = new Map<string, Promise<unknown>>();
+
+function catalogGet<T>(path: string): Promise<T> {
+  const cached = catalogCache.get(path);
+  if (cached) return cached as Promise<T>;
+  const request = fetch(`${API_URL}/public/catalog${path}`)
+    .then(async (response) => {
+      if (!response.ok) throw await toApiError(response);
+      return ((await response.json()) as { items: T }).items;
+    })
+    .catch((err: unknown) => {
+      catalogCache.delete(path);
+      throw err;
+    });
+  catalogCache.set(path, request);
+  return request as Promise<T>;
+}
+
+/** Browser-side: the full vehicle catalog, one level at a time. */
+export const getCatalogMakes = () => catalogGet<CatalogItem[]>("/makes");
+export const getCatalogModels = (makeId: string) =>
+  catalogGet<CatalogItem[]>(`/makes/${encodeURIComponent(makeId)}/models`);
+export const getCatalogVariants = (modelId: string) =>
+  catalogGet<CatalogVariant[]>(`/models/${encodeURIComponent(modelId)}/variants`);
