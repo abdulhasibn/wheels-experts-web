@@ -1,17 +1,20 @@
 "use client";
 
 import { ContactShadows, Environment, Lightformer } from "@react-three/drei";
+import { INK, useTheme } from "@/lib/theme";
 
 /**
  * Photo-studio lighting: a real studio HDRI (Poly Haven "Studio Small 09",
  * CC0) for reflections, plus a few soft boxes and a teal rim strip on top.
- * The HDRI lights the car only; the background and floor stay brand ink.
+ * The HDRI lights the car only; the background and fog follow the page ink
+ * (dark or light theme) so the canvas edge never shows.
  */
 export function Studio({ shadowMap }: { shadowMap: 0 | 1024 | 2048 }) {
+  const ink = INK[useTheme()];
   return (
     <>
-      <color attach="background" args={["#0a1211"]} />
-      <fog attach="fog" args={["#0a1211", 7, 17]} />
+      <color attach="background" args={[ink]} />
+      <fog attach="fog" args={[ink, 7, 17]} />
 
       <Environment files="/env/studio.hdr" resolution={512} environmentIntensity={0.45}>
         {/* Overhead soft box — the long highlight that runs down the bonnet and roof */}

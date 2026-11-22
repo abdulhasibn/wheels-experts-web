@@ -83,7 +83,7 @@ export function Sell() {
               <span
                 data-depth={1 + i * 0.6}
                 aria-hidden
-                className="pointer-events-none absolute -right-3 -top-4 select-none text-[7rem] font-bold md:-right-4 md:-top-6 md:text-[11rem] leading-none tracking-tighter text-transparent [-webkit-text-stroke:1px_rgb(45_212_191/0.25)]"
+                className="pointer-events-none absolute -right-3 -top-4 select-none text-[7rem] font-bold md:-right-4 md:-top-6 md:text-[11rem] leading-none tracking-tighter text-transparent [-webkit-text-stroke:1px_color-mix(in_srgb,var(--color-teal)_25%,transparent)]"
               >
                 {step.n}
               </span>

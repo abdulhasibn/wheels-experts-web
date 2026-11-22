@@ -190,7 +190,7 @@ export function Showcase() {
           <Constellation className="pointer-events-none absolute inset-0" />
           <Constellation side="right" className="pointer-events-none absolute inset-0 hidden md:block" />
           <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-10 md:flex-row md:items-end md:justify-between">
-            <div className="max-w-2xl">
+            <div className="copy-halo max-w-2xl">
               <p data-hero-in className="eyebrow mb-5">
                 Pre-owned cars · Bengaluru
               </p>
@@ -240,7 +240,7 @@ export function Showcase() {
                 item.align === "right" && "md:flex md:justify-end md:text-right",
               )}
             >
-              <div className="max-w-xl">
+              <div className="copy-halo max-w-xl">
                 {item.eyebrow && <p className="eyebrow mb-4">{item.eyebrow}</p>}
                 <h2 className="text-[clamp(2.2rem,5.5vw,4.5rem)] font-semibold leading-[1.02] tracking-[-0.035em] text-gradient">
                   {item.title}
