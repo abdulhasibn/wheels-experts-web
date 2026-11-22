@@ -59,3 +59,46 @@ export function parseMobile(input: string): string | null {
   else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
   return /^[6-9]\d{9}$/.test(digits) ? digits : null;
 }
+
+const NOT_RECORDED = "Not recorded";
+
+const RC_LABELS: Record<string, string> = {
+  clear: "Available",
+  hypothecation: "In hypothecation",
+  under_transfer: "Transfer in progress",
+};
+
+const SERVICE_LABELS: Record<string, string> = {
+  full: "Full history",
+  partial: "Partial history",
+  none: "No records",
+  unknown: "Not known",
+};
+
+/** Insurance as a buyer reads it: valid-until date, expired, Nil, or not recorded. */
+export function formatInsurance(
+  validUntil: string | null | undefined,
+  nil: boolean | undefined,
+  today: Date = new Date(),
+): string {
+  if (nil) return "Nil";
+  const match = validUntil ? /^(\d{4})-(\d{2})-(\d{2})/.exec(validUntil) : null;
+  if (!match) return NOT_RECORDED;
+  const end = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const date = end.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return end < startOfToday ? `Expired ${date}` : `Valid till ${date}`;
+}
+
+export function formatRcStatus(status: string | null | undefined): string {
+  return status ? (RC_LABELS[status] ?? label(status)) : NOT_RECORDED;
+}
+
+export function formatServiceHistory(history: string | null | undefined): string {
+  return history ? (SERVICE_LABELS[history] ?? label(history)) : NOT_RECORDED;
+}
+
+export function formatAccidentHistory(reported: boolean | undefined): string {
+  if (reported === undefined) return NOT_RECORDED;
+  return reported ? "Reported" : "None reported";
+}

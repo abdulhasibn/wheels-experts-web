@@ -11,7 +11,17 @@ import { Nav } from "@/components/nav";
 import { Footer } from "@/components/sections/footer";
 import { TrackEvent } from "@/components/track-event";
 import { carStatus, getCar } from "@/lib/api";
-import { carTitle, formatKm, formatOwners, formatPrice, label } from "@/lib/format";
+import {
+  carTitle,
+  formatAccidentHistory,
+  formatInsurance,
+  formatKm,
+  formatOwners,
+  formatPrice,
+  formatRcStatus,
+  formatServiceHistory,
+  label,
+} from "@/lib/format";
 
 type Params = Promise<{ id: string }>;
 
@@ -57,6 +67,13 @@ export default async function CarPage({ params }: { params: Params }) {
     ["Gearbox", label(car.transmission)],
     ["Ownership", formatOwners(car.previousOwners)],
     ...(car.colour ? [["Colour", car.colour] as [string, string]] : []),
+  ];
+
+  const history: [string, string][] = [
+    ["Insurance", formatInsurance(car.insuranceValidUntil, car.insuranceNil)],
+    ["RC status", formatRcStatus(car.rcStatus)],
+    ["Service history", formatServiceHistory(car.serviceHistory)],
+    ["Accident history", formatAccidentHistory(car.accidentHistory)],
   ];
 
   return (
@@ -112,6 +129,18 @@ export default async function CarPage({ params }: { params: Params }) {
             </div>
           </div>
         </div>
+
+        <section className="mt-12 max-w-3xl">
+          <h2 className="text-xl font-semibold">Papers &amp; history</h2>
+          <dl className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-edge/[0.06] bg-edge/[0.06] sm:grid-cols-2">
+            {history.map(([term, value]) => (
+              <div key={term} className="bg-ink-2 px-5 py-4">
+                <dt className="text-xs text-subtle">{term}</dt>
+                <dd className="mt-1 font-medium">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
 
         {car.description && (
           <section className="mt-12 max-w-3xl">

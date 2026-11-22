@@ -38,6 +38,13 @@ export function carStatus(car: { status?: CarStatus }): CarStatus {
 export interface PublicCarDetail extends PublicCar {
   description: string | null;
   photos: { url: string; category: string }[];
+  /** Optional: an older API omits them. */
+  insuranceValidUntil?: string | null;
+  /** True: no insurance. False with a null date: not recorded. */
+  insuranceNil?: boolean;
+  rcStatus?: string | null;
+  serviceHistory?: string | null;
+  accidentHistory?: boolean;
 }
 
 export interface Page<T> {
