@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTheme } from "@/lib/theme";
 
 interface Star {
   x: number;
@@ -54,8 +55,11 @@ const SIDES = {
   },
 } satisfies Record<string, SideConfig>;
 
-/** Canvas colours as "r, g, b". */
-const colors = { thread: "52, 211, 153", core: "167, 243, 208", halo: "94, 234, 212", grid: "45 212 191 / 0.09" } as const;
+/** Canvas colours as "r, g, b". Light mint glows on ink; on the light page it needs deeper teal to show. */
+const PALETTES = {
+  dark: { thread: "52, 211, 153", core: "167, 243, 208", halo: "94, 234, 212", grid: "45 212 191 / 0.09" },
+  light: { thread: "13, 148, 136", core: "15, 118, 110", halo: "20, 184, 166", grid: "13 148 136 / 0.1" },
+} as const;
 
 /** Deterministic PRNG so the layout is the same on every visit. */
 function mulberry32(seed: number) {
@@ -121,6 +125,7 @@ function mask(image: string): React.CSSProperties {
 export function Constellation({ side = "left", className }: { side?: keyof typeof SIDES; className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const config: SideConfig = SIDES[side];
+  const colors = PALETTES[useTheme()];
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -235,7 +240,7 @@ export function Constellation({ side = "left", className }: { side?: keyof typeo
       resize.disconnect();
       io.disconnect();
     };
-  }, [config]);
+  }, [config, colors]);
 
   return (
     <div aria-hidden className={className}>

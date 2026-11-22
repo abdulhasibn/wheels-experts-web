@@ -4,7 +4,7 @@ import clsx from "clsx";
 export function Logo({ className }: { className?: string }) {
   return (
     <span className={clsx("inline-flex items-center gap-2.5", className)}>
-      <span className="grid size-8 place-items-center rounded-lg bg-teal-deep text-white shadow-[0_0_24px_-4px_rgb(45_212_191/0.6)]">
+      <span className="grid size-8 place-items-center rounded-lg bg-teal-deep text-white shadow-[0_0_24px_-4px_color-mix(in_srgb,var(--color-teal)_60%,transparent)]">
         <WheelMark className="size-[1.1rem]" />
       </span>
       <span className="text-[15px] font-bold tracking-tight">

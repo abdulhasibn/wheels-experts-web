@@ -9,6 +9,7 @@ import { site } from "@/data/site";
 import { track } from "@/lib/analytics";
 import { PreferenceSheet } from "./leads/preference-sheet";
 import { Logo } from "./ui/logo";
+import { ThemeToggle } from "./ui/theme-toggle";
 
 // Root-relative so the same nav works on the home page and on /cars.
 const LINKS = [
@@ -94,6 +95,7 @@ export function Nav() {
           </li>
         </ul>
         <div className="flex items-center gap-2.5">
+          <ThemeToggle className="hidden md:grid" />
           <Link
             href={CTA.href}
             className="rounded-full bg-fg px-4 py-2 text-[13px] font-semibold text-ink transition hover:bg-teal-soft"
@@ -121,7 +123,7 @@ export function Nav() {
             aria-label="Close menu"
             tabIndex={-1}
             onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 top-[4.25rem] -z-10 bg-black/50 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 top-[4.25rem] -z-10 bg-ink/60 backdrop-blur-sm md:hidden"
           />
           <ul
             id="mobile-menu"
@@ -147,6 +149,9 @@ export function Nav() {
               >
                 Get a car found
               </button>
+            </li>
+            <li className="mt-1 border-t border-edge/[0.06] pt-1">
+              <ThemeToggle variant="row" />
             </li>
           </ul>
         </>
