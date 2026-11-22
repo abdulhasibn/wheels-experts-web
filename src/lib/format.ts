@@ -63,8 +63,8 @@ export function parseMobile(input: string): string | null {
 const NOT_RECORDED = "Not recorded";
 
 const RC_LABELS: Record<string, string> = {
-  clear: "Clear",
-  hypothecation: "Hypothecated (loan)",
+  clear: "Available",
+  hypothecation: "In hypothecation",
   under_transfer: "Transfer in progress",
 };
 
