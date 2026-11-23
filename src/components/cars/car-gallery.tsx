@@ -1,13 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import clsx from "clsx";
 import { track } from "@/lib/analytics";
 import { CarPhoto } from "./car-card";
+import { GalleryLightbox } from "./gallery-lightbox";
 
 export function CarGallery({ photos, title }: { photos: { url: string; category: string }[]; title: string }) {
   const [index, setIndex] = useState(0);
+  const [fullscreen, setFullscreen] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const browsed = useRef(false);
 
@@ -46,7 +48,8 @@ export function CarGallery({ photos, title }: { photos: { url: string; category:
       <div
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        className="relative aspect-[4/3] touch-pan-y overflow-hidden rounded-[28px] bg-ink-3"
+        onClick={() => setFullscreen(true)}
+        className="relative aspect-[4/3] cursor-zoom-in touch-pan-y overflow-hidden rounded-[28px] bg-ink-3"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -59,7 +62,10 @@ export function CarGallery({ photos, title }: { photos: { url: string; category:
           <>
             <button
               type="button"
-              onClick={() => step(-1)}
+              onClick={(e) => {
+                e.stopPropagation();
+                step(-1);
+              }}
               aria-label="Previous photo"
               className="absolute left-3 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-black/65"
             >
@@ -67,7 +73,10 @@ export function CarGallery({ photos, title }: { photos: { url: string; category:
             </button>
             <button
               type="button"
-              onClick={() => step(1)}
+              onClick={(e) => {
+                e.stopPropagation();
+                step(1);
+              }}
               aria-label="Next photo"
               className="absolute right-3 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-black/65"
             >
@@ -78,7 +87,20 @@ export function CarGallery({ photos, title }: { photos: { url: string; category:
             </span>
           </>
         )}
+        <span className="absolute left-3 top-3 grid size-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur">
+          <Maximize2 className="size-4" aria-hidden />
+          <span className="sr-only">View full screen</span>
+        </span>
       </div>
+      {fullscreen && (
+        <GalleryLightbox
+          photos={photos}
+          title={title}
+          index={index}
+          onIndexChange={(i) => show(() => i)}
+          onClose={() => setFullscreen(false)}
+        />
+      )}
       {photos.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
           {photos.map((photo, i) => (
